@@ -9,8 +9,13 @@ const app = express()
 app.use(cors())
 app.use(express.json())
 
+const apiKey = process.env.GROQ_API_KEY
+if (!apiKey) {
+  console.error('❌ ERROR: Missing GROQ_API_KEY environment variable.')
+}
+
 const groq = new Groq({
-  apiKey: process.env.GROQ_API_KEY,
+  apiKey: apiKey || 'MISSING_API_KEY',
 })
 
 console.log('✅ GROQ KEY LOADED:', !!process.env.GROQ_API_KEY)

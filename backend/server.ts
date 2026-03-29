@@ -8,10 +8,13 @@ import Groq from 'groq-sdk'
 import dotenv from 'dotenv'
 
 dotenv.config()
-console.log('✅ GROQ KEY EXISTS:', !!process.env.GROQ_API_KEY)
+const apiKey = process.env.GROQ_API_KEY
+if (!apiKey) {
+  console.error('❌ ERROR: Missing GROQ_API_KEY environment variable.')
+}
 
 const groq = new Groq({
-  apiKey: process.env.GROQ_API_KEY,
+  apiKey: apiKey || 'MISSING_API_KEY',
 })
 
 const app = express()
