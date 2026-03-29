@@ -794,7 +794,7 @@ export default function App() {
       formData.append('file', evidenceFile)
       formData.append('description', description)
 
-      const res = await fetch(`${API_BASE}/upload-evidence`, {
+      const res = await fetch(`${API_BASE}/api/upload-evidence`, {
         method: 'POST',
         body: formData,
       })
