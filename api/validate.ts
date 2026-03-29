@@ -1,4 +1,4 @@
-import { VercelRequest, VercelResponse } from '@vercel/node'
+import type { VercelRequest, VercelResponse } from '@vercel/node'
 import { validateStatementWithLLM } from './utils'
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {

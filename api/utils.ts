@@ -1,7 +1,11 @@
 import Groq from 'groq-sdk'
 
+const apiKey = process.env.GROQ_API_KEY
+if (!apiKey) {
+  console.error('Missing GROQ_API_KEY environment variable')
+}
 const groq = new Groq({
-  apiKey: process.env.GROQ_API_KEY,
+  apiKey: apiKey || 'MISSING_API_KEY',
 })
 
 export type HistoryTurn = { role: string; text: string }

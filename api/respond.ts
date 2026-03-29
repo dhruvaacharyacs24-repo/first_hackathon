@@ -1,10 +1,10 @@
-import { VercelRequest, VercelResponse } from '@vercel/node'
+import type { VercelRequest, VercelResponse } from '@vercel/node'
 import {
   generateResponse,
   normalizeHistoryPayload,
   formatCaseWithEvidence,
-  EvidenceSummary,
 } from './utils'
+import type { EvidenceSummary } from './utils'
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   // Enable CORS

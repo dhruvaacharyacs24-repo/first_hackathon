@@ -1,9 +1,14 @@
-import { VercelRequest, VercelResponse } from '@vercel/node'
+import type { VercelRequest, VercelResponse } from '@vercel/node'
 import Groq from 'groq-sdk'
-import { normalizeHistoryPayload, EvidenceSummary } from './utils'
+import { normalizeHistoryPayload } from './utils'
+import type { EvidenceSummary } from './utils'
 
+const apiKey = process.env.GROQ_API_KEY
+if (!apiKey) {
+  console.error('Missing GROQ_API_KEY environment variable')
+}
 const groq = new Groq({
-  apiKey: process.env.GROQ_API_KEY,
+  apiKey: apiKey || 'MISSING_API_KEY',
 })
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
