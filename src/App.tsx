@@ -790,14 +790,32 @@ export default function App() {
     setIsLoading(true)
     setWarning(null)
     try {
-      const formData = new FormData()
-      formData.append('file', evidenceFile)
-      formData.append('description', description)
+      // 1. Convert file to base64
+      const reader = new FileReader()
+      const base64Promise = new Promise<string>((resolve, reject) => {
+        reader.onload = () => {
+          const res = reader.result as string
+          const base64 = res.split(',')[1] // Skip the "data:..." prefix
+          resolve(base64)
+        }
+        reader.onerror = reject
+        reader.readAsDataURL(evidenceFile)
+      })
 
+      const fileBuffer = await base64Promise
+
+      // 2. Send JSON payload
       const res = await fetch(`${API_BASE}/api/upload-evidence`, {
         method: 'POST',
-        body: formData,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          description,
+          fileName: evidenceFile.name,
+          mimeType: evidenceFile.type,
+          fileBuffer,
+        }),
       })
+
       if (!res.ok) {
         const errorData = await res.json().catch(() => ({}))
         throw new Error(errorData.error || 'Upload failed')
@@ -826,8 +844,9 @@ export default function App() {
       setEvidenceFile(null)
       setEvidenceDescription('')
       setEvidenceOpen(false)
-    } catch {
-      setWarning('Evidence upload failed. Please try again.')
+    } catch (err: any) {
+      console.error('Evidence upload error:', err)
+      setWarning(err.message || 'Evidence upload failed. Please try again.')
     } finally {
       setIsLoading(false)
     }

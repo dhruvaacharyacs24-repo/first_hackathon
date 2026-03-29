@@ -255,7 +255,7 @@ function normalizeHistoryPayload(raw: unknown): HistoryTurn[] {
   })
 }
 
-app.post('/generate', async (req, res) => {
+app.post('/api/generate', async (req, res) => {
   const body = req.body ?? {}
   const { mode, input: inputRaw, history: historyRaw = [], caseString: caseRaw } = body as {
     mode?: string
@@ -309,7 +309,7 @@ app.post('/generate', async (req, res) => {
   }
 })
 
-app.post('/chat', async (req, res) => {
+app.post('/api/chat', async (req, res) => {
   const message = String(req.body?.message ?? '').trim()
   const role = String(req.body?.role ?? '') as ChatRole
   const historyRaw = Array.isArray(req.body?.history) ? req.body.history : []
@@ -434,34 +434,60 @@ const upload = multer({
   },
 })
 
-app.post('/upload-evidence', upload.single('file'), async (req, res) => {
-  const description = String(req.body?.description ?? '')
-  const file = req.file
-  if (!file) return res.status(400).json({ error: 'Missing file' })
+app.post('/api/upload-evidence', upload.single('file'), async (req, res) => {
+  let description = String(req.body?.description ?? '')
+  let fileBuffer: Buffer | undefined
+  let mimeType: string | undefined
+  let fileName: string | undefined
+
+  if (req.file) {
+    // Handling multipart/form-data (old style)
+    fileBuffer = req.file.buffer || fs.readFileSync(req.file.path)
+    mimeType = req.file.mimetype
+    fileName = req.file.originalname
+  } else if (req.body?.fileBuffer) {
+    // Handling JSON/Base64 (new style)
+    fileBuffer = Buffer.from(req.body.fileBuffer, 'base64')
+    mimeType = req.body.mimeType || 'application/octet-stream'
+    fileName = req.body.fileName || 'evidence.bin'
+    description = String(req.body.description ?? '')
+  }
+
+  if (!fileBuffer) return res.status(400).json({ error: 'Missing file' })
   if (!description.trim()) return res.status(400).json({ error: 'Missing description' })
 
   // AI Validation for Images
-  if (file.mimetype.startsWith('image/')) {
+  if (mimeType?.startsWith('image/')) {
     try {
-      const { valid, reason } = await validateEvidenceWithVision(file.buffer || fs.readFileSync(file.path), file.mimetype, description)
+      const { valid, reason } = await validateEvidenceWithVision(fileBuffer, mimeType, description)
       if (!valid) {
-        // Since we are using diskStorage above line 307, the file is already on disk.
-        // We should delete it if it's invalid.
-        if (file.path) fs.unlinkSync(file.path)
+        if (req.file?.path) fs.unlinkSync(req.file.path)
         return res.status(400).json({ error: `Evidence Rejected: ${reason}` })
       }
     } catch (vErr) {
       console.error('Validation step encountered an error', vErr)
-      // We continue if validation fails to not block the user entirely
     }
   }
 
-  const fileUrl = `/uploads/${file.filename}`
+  // Local storage handling
+  let finalFileName: string
+  if (req.file) {
+    finalFileName = req.file.filename
+  } else {
+    const safeOriginal = fileName!.replace(/[^a-zA-Z0-9._-]/g, '_')
+    const ext = path.extname(safeOriginal)
+    const base = path.basename(safeOriginal, ext).slice(0, 80) || 'evidence'
+    const unique = `${Date.now()}_${Math.random().toString(16).slice(2)}`
+    finalFileName = `${base}_${unique}${ext}`
+    fs.writeFileSync(path.join(uploadsDir, finalFileName), fileBuffer)
+  }
+
+  const fileUrl = `/uploads/${finalFileName}`
   res.json({
     fileUrl,
     description,
-    fileName: file.originalname,
-    fileType: file.mimetype || 'application/octet-stream',
+    fileName: fileName,
+    fileType: mimeType || 'application/octet-stream',
   })
 })
 

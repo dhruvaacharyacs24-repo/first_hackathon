@@ -16,7 +16,7 @@
   "dependencies": {
     "@splinetool/react-spline": "^4.1.0",
     "@supabase/supabase-js": "^2.100.1",
-    "@vercel/node": "^3.0.11",
+    "@vercel/node": "^3.2.29",
     "axios": "^1.13.6",
     "cors": "^2.8.6",
     "dotenv": "^17.3.1",
