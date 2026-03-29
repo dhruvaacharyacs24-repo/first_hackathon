@@ -1,0 +1,7 @@
+# Vercel Build Exclusions
+# These files/folders won't be included in the Vercel deployment
+
+backend/
+uploads/
+LOCAL_TESTING.md
+MIGRATION_GUIDE.md
