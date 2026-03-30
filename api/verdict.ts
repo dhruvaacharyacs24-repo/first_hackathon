@@ -45,7 +45,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     const prompt = `Evaluate this courtroom simulation.
 Case: ${caseText}
-History: ${history.map((h) => `[${h.role.toUpperCase()}] ${h.text}`).join('\n')}
+Trial History (Recent 12 turns):
+${history.slice(-12).map((h) => `[${h.role.toUpperCase()}] ${h.text}`).join('\n')}
 Evidence: ${evidence.map((e) => `- ${e.description}`).join('\n')}
 
 Rules:

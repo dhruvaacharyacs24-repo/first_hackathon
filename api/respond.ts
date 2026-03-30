@@ -47,16 +47,19 @@ async function generateResponse(
 Case: ${caseString || 'Not provided'}
 
 Rules:
-- Accept user arguments even if imperfect
-- Interpret intent, focus on legal arguments
-- Respond logically in 2-3 lines.
+- DO NOT REPEAT previous arguments or phrases. Always move the case forward.
+- Introduce new legal challenges or facts based on the latest input.
+- Keep responses formal, sharp, and strictly 2-3 lines.
 
 Latest Input:
 ${input}
 `
 
+  // SLIDING WINDOW: Only send the last 8 messages to keep the prompt fast and within the 9s limit
+  const recentHistory = history.slice(-8)
+
   const messages: Array<{ role: 'user' | 'assistant'; content: string }> = [
-    ...history.map((h: HistoryTurn) => ({
+    ...recentHistory.map((h: HistoryTurn) => ({
       role: (h.role === 'assistant' ? 'assistant' : 'user') as 'user' | 'assistant',
       content: h.text,
     })),
@@ -69,6 +72,7 @@ ${input}
       messages: messages,
       max_tokens: 300,
       temperature: 0.7,
+      presence_penalty: 0.5, // Discourage repetition
     })
 
     const response = completion.choices[0]?.message?.content
