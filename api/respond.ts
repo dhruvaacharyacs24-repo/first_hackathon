@@ -21,44 +21,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   try {
-    const role = String(req.body?.role ?? '') as 'prosecution' | 'defence' | 'judge'
-    const caseText = String(req.body?.caseText ?? '')
-    const lastArgument = String(req.body?.lastArgument ?? '')
-    const evidenceRaw = Array.isArray(req.body?.evidence) ? req.body.evidence : []
-
-    const evidence: EvidenceSummary[] = evidenceRaw
-      .map((e: unknown) => {
-        const rec = (e ?? {}) as Record<string, unknown>
-        return {
-          description: String(rec.description ?? ''),
-          fileType: String(rec.fileType ?? ''),
-        }
-      })
-      .filter((e: EvidenceSummary) => e.description.trim().length > 0 || e.fileType.trim().length > 0)
-
-    if (!['prosecution', 'defence', 'judge'].includes(role)) {
-      return res.status(400).json({ error: 'Invalid role' })
-    }
-
-    const caseString = formatCaseWithEvidence(caseText, evidence)
-    const historyRaw = req.body?.history
-    const history = normalizeHistoryPayload(historyRaw)
-
-    // Set timeout for long-running operation
-    const timeoutPromise = new Promise<string>((_, reject) =>
-      setTimeout(() => reject(new Error('The Judge is thinking too slowly (9s Timeout). Please try again.')), 9000),
-    )
-    const generationPromise = generateResponse(role, history, caseString, lastArgument)
-
-    const text = await Promise.race([generationPromise, timeoutPromise])
-
-    return res.status(200).json({ text })
-  } catch (err: any) {
-    console.error('LLM error:', err)
-    return res.status(500).json({ 
-      error: err.message || String(err),
-      type: err.name,
-      stack: err.stack
+    // Isolation Test: Ensure the URL and Body parsing are working on Vercel
+    const bodyText = JSON.stringify(req.body ?? {}).slice(0, 50)
+    return res.status(200).json({ 
+      text: `AI Engine (Isolation Mode): Detected role: ${req.body?.role || 'None'}. Body snippet: ${bodyText}...`
     })
+  } catch (err: any) {
+    return res.status(500).json({ error: `Isolation Crash: ${err.message}` })
   }
 }

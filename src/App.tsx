@@ -148,9 +148,16 @@ async function generateRoleResponse(opts: {
       body: JSON.stringify({ role, caseText, lastArgument, evidence, history }),
     })
     if (!res.ok) {
-      const errorData = await res.json().catch(() => null)
-      const errorMsg = errorData?.error || res.statusText || 'Unknown Error'
-      throw new Error(`Server Error ${res.status}: ${errorMsg}`)
+      const respText = await res.text().catch(() => 'No response body')
+      let errorMessage = `Server Error ${res.status}`
+      try {
+        const errorData = JSON.parse(respText)
+        errorMessage += `: ${errorData?.error || res.statusText || 'Error Details Missing'}`
+      } catch {
+        // If not JSON, show the first 100 characters of the raw text (e.g. Vercel error page)
+        errorMessage += `: ${respText.slice(0, 150)}`
+      }
+      throw new Error(errorMessage)
     }
     const data = (await res.json()) as { text?: string }
     if (data.text && data.text.trim().length > 0) {
