@@ -107,7 +107,21 @@ function roleMeta(role: Role) {
   }
 }
 
-const API_BASE = import.meta.env.VITE_API_BASE ?? ''
+const getApiBase = () => {
+  const envBase = import.meta.env.VITE_API_BASE ?? ''
+  if (!envBase) return ''
+  // If we are on a real domain (not localhost) but the base points to localhost,
+  // we SHOULD ignore it to force relative paths (which work for Vercel).
+  if (typeof window !== 'undefined' && 
+      window.location.hostname !== 'localhost' && 
+      window.location.hostname !== '127.0.0.1' &&
+      envBase.includes('localhost')) {
+    return ''
+  }
+  return envBase
+}
+
+const API_BASE = getApiBase()
 const RESPONSE_DELAY_MS = 650
 
 function sleep(ms: number) {
