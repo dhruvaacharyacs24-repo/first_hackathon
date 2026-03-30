@@ -61,9 +61,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return res.status(400).json({ error: 'Invalid file format' })
     }
 
-    // Check file size (10MB limit)
-    if (buffer.length > 10 * 1024 * 1024) {
-      return res.status(400).json({ error: 'File too large (max 10MB)' })
+    // Check file size (4.5MB limit for Vercel Free Tier)
+    if (buffer.length > 4.5 * 1024 * 1024) {
+      return res.status(400).json({ error: 'File too large for Vercel Free tier (max 4.5MB)' })
     }
 
     // AI Validation for Images

@@ -46,7 +46,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     // Set timeout for long-running operation
     const timeoutPromise = new Promise<string>((_, reject) =>
-      setTimeout(() => reject(new Error('Response generation timeout')), 20000),
+      setTimeout(() => reject(new Error('The Judge is thinking too slowly (9s Timeout). Please try again.')), 9000),
     )
     const generationPromise = generateResponse(role, history, caseString, lastArgument)
 

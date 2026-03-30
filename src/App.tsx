@@ -148,7 +148,9 @@ async function generateRoleResponse(opts: {
       body: JSON.stringify({ role, caseText, lastArgument, evidence, history }),
     })
     if (!res.ok) {
-      throw new Error('Bad response')
+      const errorData = await res.json().catch(() => null)
+      const errorMsg = errorData?.error || res.statusText || 'Unknown Error'
+      throw new Error(`Server Error ${res.status}: ${errorMsg}`)
     }
     const data = (await res.json()) as { text?: string }
     if (data.text && data.text.trim().length > 0) {
@@ -607,7 +609,11 @@ export default function App() {
           evidence: evidenceForPrompt(messages)
         }),
       })
-      if (!res.ok) throw new Error('Verdict failed')
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => null)
+        const errorMsg = errorData?.error || res.statusText || 'Unknown Error'
+        throw new Error(`Verdict Error ${res.status}: ${errorMsg}`)
+      }
       const data = await res.json()
       setVerdict(data)
       setShowVerdictModal(true)
