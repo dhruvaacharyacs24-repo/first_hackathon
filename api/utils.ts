@@ -95,14 +95,15 @@ Respond logically in 2-3 lines.`
 
     if (!response) {
       console.error(`❌ [${role}] Empty response from Groq`)
-      return 'I cannot provide a response at this moment. Please try again.'
+      return 'API Error: The AI returned an empty response.'
     }
 
     console.log(`✅ [${role}] Response received: ${response.slice(0, 80)}...`)
     return response.trim()
-  } catch (error) {
+  } catch (error: any) {
     console.error(`\n❌ GROQ ERROR for ${role}:`, error)
-    return 'I apologize, but I encountered an error processing your request. Please try again.'
+    const msg = error?.message || String(error)
+    return `AI Error: ${msg}`
   }
 }
 

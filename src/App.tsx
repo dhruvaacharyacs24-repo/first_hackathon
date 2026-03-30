@@ -154,15 +154,11 @@ async function generateRoleResponse(opts: {
     if (data.text && data.text.trim().length > 0) {
       return data.text.trim()
     }
-  } catch {
-    // Fallback: use local canned examples, still enforcing 1–2 sentence, role-specific responses
-    if (role === 'prosecution') {
-      return pickExample(PROS_EXAMPLES)
-    }
-    if (role === 'defence') {
-      return pickExample(DEF_EXAMPLES)
-    }
-    return pickExample(JUDGE_EXAMPLES)
+  } catch (err: any) {
+    console.error('AI generation failed:', err)
+    const msg = err?.message || String(err)
+    if (msg.startsWith('AI Error:')) return msg
+    return `AI Error: ${msg}`
   }
 
   // If backend returned an empty payload, still return a usable fallback.
