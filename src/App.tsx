@@ -1043,13 +1043,13 @@ export default function App() {
           </div>
 
           <div className="headerActions">
-            {turnCount >= 6 && !verdict && (
+            {turnCount >= 6 && (
               <button 
                 className="btn btnPrimary declareBtn pulse-gold" 
                 onClick={handleDeclareVerdict}
                 disabled={isLoading}
               >
-                {isLoading ? 'Judge Analyzing...' : 'Declare Result'}
+                {isLoading ? 'Judge Analyzing...' : (verdict ? 'Update Verdict' : 'Declare Result')}
               </button>
             )}
             <button className="btnSm" onClick={handleLogout}>

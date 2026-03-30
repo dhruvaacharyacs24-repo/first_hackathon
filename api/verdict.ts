@@ -1,29 +1,36 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
 import Groq from 'groq-sdk'
-import { normalizeHistoryPayload } from './utils'
-import type { EvidenceSummary } from './utils'
 
+// --- Inlined Utilities to solve Vercel Module Resolution issues ---
 const apiKey = process.env.GROQ_API_KEY
-if (!apiKey) {
-  console.error('Missing GROQ_API_KEY environment variable')
-}
 const groq = new Groq({
   apiKey: apiKey || 'MISSING_API_KEY',
 })
 
+type HistoryTurn = { role: string; text: string }
+type EvidenceSummary = { description: string; fileType: string }
+
+function normalizeHistoryPayload(raw: unknown): HistoryTurn[] {
+  if (!Array.isArray(raw)) return []
+  return raw.map((item) => {
+    const rec = (item ?? {}) as Record<string, unknown>
+    const roleStr = String(rec.role ?? '').toLowerCase()
+    return {
+      role: roleStr.includes('assistant') ? 'assistant' : 'user',
+      text: String(rec.text ?? rec.content ?? ''),
+    }
+  })
+}
+
+// --- Main Handler ---
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   // Enable CORS
   res.setHeader('Access-Control-Allow-Origin', '*')
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS')
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type')
 
-  if (req.method === 'OPTIONS') {
-    return res.status(200).end()
-  }
-
-  if (req.method !== 'POST') {
-    return res.status(405).json({ error: 'Method not allowed' })
-  }
+  if (req.method === 'OPTIONS') return res.status(200).end()
+  if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' })
 
   try {
     const historyRaw = req.body?.history
@@ -36,31 +43,22 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       fileType: String(e.fileType ?? ''),
     }))
 
-    const prompt = [
-      'Evaluate the following courtroom simulation and provide a final verdict.',
-      '',
-      'Case Details:',
-      caseText,
-      '',
-      'Trial History:',
-      history.map((h) => `[${h.role.toUpperCase()}] ${h.text}`).join('\n'),
-      '',
-      'Evidence Presented:',
-      evidence.map((e) => `- ${e.description} (${e.fileType})`).join('\n'),
-      '',
-      'Rules for Judgment:',
-      '1. Analyze the strength of arguments from both Prosecution and Defence.',
-      '2. Consider the relevance and impact of the evidence.',
-      '3. Decide on a winner: PROSECUTION or DEFENCE. There are NO TIES.',
-      '4. Provide a detailed, formal reasoning in 3-4 sentences.',
-      '',
-      'Respond STRICTLY in JSON format:',
-      '{ "winner": "PROSECUTION", "judgement": "..." } or { "winner": "DEFENCE", "judgement": "..." }',
-    ].join('\n')
+    const prompt = `Evaluate this courtroom simulation.
+Case: ${caseText}
+History: ${history.map((h) => `[${h.role.toUpperCase()}] ${h.text}`).join('\n')}
+Evidence: ${evidence.map((e) => `- ${e.description}`).join('\n')}
 
-    // Set timeout for generation
+Rules:
+1. Decide winner: PROSECUTION or DEFENCE. (NO TIES).
+2. Provide formal reasoning (2-3 sentences).
+
+Respond STRICTLY in JSON:
+{ "winner": "PROSECUTION", "judgement": "..." }
+`
+
+    // Set 9s timeout for Vercel 10s limit
     const timeoutPromise = new Promise<any>((_, reject) =>
-      setTimeout(() => reject(new Error('Verdict generation timeout')), 25000),
+      setTimeout(() => reject(new Error('The Judge is thinking too slowly (9s Timeout). Please try again.')), 9000),
     )
 
     const verdictPromise = (async () => {
@@ -71,21 +69,19 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         temperature: 0.6,
       })
 
-      const result = JSON.parse(completion.choices[0]?.message?.content || '{}')
+      const resText = completion.choices[0]?.message?.content || '{}'
+      const result = JSON.parse(resText)
 
-      // Fallback if AI skips the winner key or returns invalid
       if (!result.winner || !['PROSECUTION', 'DEFENCE'].includes(result.winner.toUpperCase())) {
         result.winner = Math.random() > 0.5 ? 'PROSECUTION' : 'DEFENCE'
       }
-
       return result
     })()
 
     const result = await Promise.race([verdictPromise, timeoutPromise])
-
     return res.json(result)
-  } catch (err) {
+  } catch (err: any) {
     console.error('Verdict error:', err)
-    return res.status(500).json({ error: 'Judge failed to reach a verdict.' })
+    return res.status(500).json({ error: err.message || 'Judge failed to reach a verdict.' })
   }
 }
