@@ -53,8 +53,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const text = await Promise.race([generationPromise, timeoutPromise])
 
     return res.status(200).json({ text })
-  } catch (err) {
+  } catch (err: any) {
     console.error('LLM error:', err)
-    return res.status(500).json({ error: 'Failed to generate response' })
+    return res.status(500).json({ 
+      error: err.message || String(err),
+      type: err.name,
+      stack: err.stack
+    })
   }
 }

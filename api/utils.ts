@@ -13,11 +13,14 @@ export type EvidenceSummary = { description: string; fileType: string }
 
 export function formatCaseWithEvidence(caseText: string, evidence: EvidenceSummary[]): string {
   if (evidence.length === 0) return caseText
-  const block = evidence
-    .flatMap((e) => [
-      `* Description: ${String(e.description ?? '').slice(0, 600)}`,
-      `  File type: ${String(e.fileType ?? '').slice(0, 120)}`,
-    ])
+  const block = (evidence || [])
+    .flatMap((e) => {
+      if (!e) return []
+      return [
+        `* Description: ${String(e.description ?? '').slice(0, 600)}`,
+        `  File type: ${String(e.fileType ?? '').slice(0, 120)}`,
+      ]
+    })
     .join('\n')
   return `${caseText}\n\nEvidence:\n${block}\n\nConsider the following evidence while responding.`
 }
@@ -168,8 +171,9 @@ export function normalizeHistoryPayload(raw: unknown): HistoryTurn[] {
   if (!Array.isArray(raw)) return []
   return raw.map((item) => {
     const rec = (item ?? {}) as Record<string, unknown>
+    const roleStr = String(rec.role ?? '').toLowerCase()
     return {
-      role: String(rec.role ?? ''),
+      role: roleStr.includes('assistant') ? 'assistant' : 'user',
       text: String(rec.text ?? rec.content ?? ''),
     }
   })
